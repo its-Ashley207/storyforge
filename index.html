@@ -529,21 +529,34 @@ function updateModePill(){
 // ════════════ OLLAMA ════════════
 async function detectOllama(){
   const hi=document.getElementById('ollamaHost');
-  if(hi) ollamaHost=hi.value.trim()||'http://localhost:11434';
+  if(hi){
+    // Auto-correct if user accidentally has port 8080 (python server) instead of 11434 (ollama)
+    if(hi.value.includes('8080')){ hi.value='http://localhost:11434'; }
+    ollamaHost=hi.value.trim()||'http://localhost:11434';
+  }
   setOllamaStatus('checking','Connecting to '+ollamaHost+'...');
   try{
-    const res=await fetch(ollamaHost+'/api/tags',{signal:AbortSignal.timeout(5000)});
-    if(!res.ok) throw new Error();
+    const res=await fetch(ollamaHost+'/api/tags',{
+      signal:AbortSignal.timeout(8000),
+      headers:{'Accept':'application/json'}
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
     const data=await res.json();
     const models=(data.models||[]).map(m=>m.name);
     ollamaReady=true;
-    setOllamaStatus('ok','✓ Connected'+(models.length?' · '+models.length+' model(s)':' · No models yet'));
+    setOllamaStatus('ok','✓ Connected · '+(models.length?models.length+' model(s) found':'No models yet — run: ollama pull llama3.2'));
     document.getElementById('modelPicker').style.display='block';
     if(models.length>0) selectModel(models[0].split(':')[0]);
-  }catch{
+  }catch(err){
     ollamaReady=false;
     const local=ollamaHost.includes('localhost')||ollamaHost.includes('127.0.0.1');
-    setOllamaStatus('err',local?'Ollama not found. Install below or switch to Cloud AI.':'Cannot reach '+ollamaHost+'. Check IP and OLLAMA_HOST setting.');
+    let msg='';
+    if(local){
+      msg='CORS error — In Command Prompt run this command then click Retry:\n  set OLLAMA_ORIGINS=* && taskkill /f /im ollama.exe && ollama serve';
+    } else {
+      msg='Cannot reach '+ollamaHost+'. Check your PC IP address and that OLLAMA_HOST=0.0.0.0 is set on your PC.';
+    }
+    setOllamaStatus('err',msg);
     document.getElementById('modelPicker').style.display='none';
   }
   document.getElementById('ollamaHostSection').style.display='block';
