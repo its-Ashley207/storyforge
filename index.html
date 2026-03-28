@@ -66,6 +66,8 @@ textarea::placeholder,input::placeholder{color:#3a3530;font-style:italic}
 .genre-option:last-child{border-bottom:none}
 .genre-option:active,.genre-option:hover{background:rgba(232,201,126,.08);color:var(--gold)}
 .genre-option.custom-hint{color:var(--dim);font-style:italic;font-size:.85rem}
+.genre-option.genre-group{color:var(--dim);font-size:.75rem;padding:8px 16px 4px;cursor:default;letter-spacing:.05em;text-transform:uppercase;background:rgba(255,255,255,.02);pointer-events:none}
+.genre-option.genre-clear:active,.genre-option.genre-clear:hover{color:var(--red)!important;background:rgba(220,80,80,.08)!important}
 
 /* ── Select (for tone/wordcount) ── */
 select{
@@ -324,42 +326,80 @@ select:focus{border-color:var(--gold)}
       <textarea id="storySummary" rows="5" placeholder="Describe your story idea... characters, conflict, world, themes..."></textarea>
     </div>
 
-    <!-- ── FREE-TYPE GENRE ── -->
+    <!-- ── FREE-TYPE GENRE (OPTIONAL) ── -->
     <div class="field">
-      <label>Genre</label>
+      <label>Genre <span style="color:var(--dim);font-size:.75rem;text-transform:none;letter-spacing:0">(optional — type freely or pick one)</span></label>
       <div class="genre-wrap" id="genreWrap">
         <input type="text" id="genreInput" class="genre-input"
-               placeholder="e.g. Fantasy, Sci-Fi, Horror, or invent your own..."
-               value="Fantasy"
+               placeholder="Leave blank or type: Fantasy, Cyberpunk, Romance..."
+               value=""
                oninput="onGenreType()"
                onfocus="openGenreDropdown()"
                autocomplete="off"/>
         <div class="genre-arrow" onclick="toggleGenreDropdown()">▼</div>
         <div class="genre-dropdown" id="genreDropdown">
-          <div class="genre-option" onclick="pickGenre('Fantasy')">Fantasy</div>
-          <div class="genre-option" onclick="pickGenre('Science Fiction')">Science Fiction</div>
-          <div class="genre-option" onclick="pickGenre('Mystery')">Mystery</div>
-          <div class="genre-option" onclick="pickGenre('Romance')">Romance</div>
-          <div class="genre-option" onclick="pickGenre('Thriller')">Thriller</div>
-          <div class="genre-option" onclick="pickGenre('Horror')">Horror</div>
-          <div class="genre-option" onclick="pickGenre('Historical Fiction')">Historical Fiction</div>
+          <div class="genre-option genre-clear" onclick="pickGenre('')" style="color:var(--dim);font-style:italic">✕ No specific genre</div>
+          <!-- Action & Adventure -->
+          <div class="genre-option genre-group">── Action & Adventure ──</div>
           <div class="genre-option" onclick="pickGenre('Adventure')">Adventure</div>
-          <div class="genre-option" onclick="pickGenre('Literary Fiction')">Literary Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Action')">Action</div>
+          <div class="genre-option" onclick="pickGenre('Survival')">Survival</div>
+          <div class="genre-option" onclick="pickGenre('Heist')">Heist</div>
+          <!-- Fantasy -->
+          <div class="genre-option genre-group">── Fantasy ──</div>
+          <div class="genre-option" onclick="pickGenre('Fantasy')">Fantasy</div>
           <div class="genre-option" onclick="pickGenre('Dark Fantasy')">Dark Fantasy</div>
+          <div class="genre-option" onclick="pickGenre('High Fantasy')">High Fantasy</div>
+          <div class="genre-option" onclick="pickGenre('Urban Fantasy')">Urban Fantasy</div>
+          <div class="genre-option" onclick="pickGenre('Mythology')">Mythology</div>
+          <div class="genre-option" onclick="pickGenre('Fairy Tale')">Fairy Tale</div>
+          <div class="genre-option" onclick="pickGenre('Isekai')">Isekai</div>
+          <div class="genre-option" onclick="pickGenre('Xianxia / Wuxia')">Xianxia / Wuxia</div>
+          <!-- Sci-Fi -->
+          <div class="genre-option genre-group">── Science Fiction ──</div>
+          <div class="genre-option" onclick="pickGenre('Science Fiction')">Science Fiction</div>
           <div class="genre-option" onclick="pickGenre('Cyberpunk')">Cyberpunk</div>
           <div class="genre-option" onclick="pickGenre('Steampunk')">Steampunk</div>
-          <div class="genre-option" onclick="pickGenre('Mythology')">Mythology</div>
-          <div class="genre-option" onclick="pickGenre('Slice of Life')">Slice of Life</div>
-          <div class="genre-option" onclick="pickGenre('Isekai')">Isekai</div>
+          <div class="genre-option" onclick="pickGenre('Space Opera')">Space Opera</div>
           <div class="genre-option" onclick="pickGenre('Post-Apocalyptic')">Post-Apocalyptic</div>
+          <div class="genre-option" onclick="pickGenre('Dystopian')">Dystopian</div>
+          <div class="genre-option" onclick="pickGenre('Time Travel')">Time Travel</div>
+          <div class="genre-option" onclick="pickGenre('LitRPG')">LitRPG</div>
+          <!-- Mystery & Thriller -->
+          <div class="genre-option genre-group">── Mystery & Thriller ──</div>
+          <div class="genre-option" onclick="pickGenre('Mystery')">Mystery</div>
+          <div class="genre-option" onclick="pickGenre('Thriller')">Thriller</div>
+          <div class="genre-option" onclick="pickGenre('Crime')">Crime</div>
+          <div class="genre-option" onclick="pickGenre('Detective')">Detective</div>
+          <div class="genre-option" onclick="pickGenre('Psychological Thriller')">Psychological Thriller</div>
+          <div class="genre-option" onclick="pickGenre('Spy')">Spy</div>
+          <!-- Horror -->
+          <div class="genre-option genre-group">── Horror ──</div>
+          <div class="genre-option" onclick="pickGenre('Horror')">Horror</div>
+          <div class="genre-option" onclick="pickGenre('Supernatural Horror')">Supernatural Horror</div>
+          <div class="genre-option" onclick="pickGenre('Psychological Horror')">Psychological Horror</div>
+          <div class="genre-option" onclick="pickGenre('Gothic')">Gothic</div>
+          <!-- Romance -->
+          <div class="genre-option genre-group">── Romance ──</div>
+          <div class="genre-option" onclick="pickGenre('Romance')">Romance</div>
+          <div class="genre-option" onclick="pickGenre('Historical Romance')">Historical Romance</div>
+          <div class="genre-option" onclick="pickGenre('Fantasy Romance')">Fantasy Romance</div>
+          <!-- Literary -->
+          <div class="genre-option genre-group">── Literary ──</div>
+          <div class="genre-option" onclick="pickGenre('Literary Fiction')">Literary Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Historical Fiction')">Historical Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Slice of Life')">Slice of Life</div>
+          <div class="genre-option" onclick="pickGenre('Coming of Age')">Coming of Age</div>
+          <div class="genre-option" onclick="pickGenre('Biographical')">Biographical</div>
           <div class="genre-option custom-hint" id="customGenreHint" style="display:none">✎ Use "<span id="customGenrePreview"></span>" as custom genre</div>
         </div>
       </div>
     </div>
 
     <div class="field">
-      <label>Tone</label>
+      <label>Tone <span style="color:var(--dim);font-size:.75rem;text-transform:none;letter-spacing:0">(optional)</span></label>
       <select id="storyTone">
+        <option value="">— No specific tone —</option>
         <option>Epic &amp; adventurous</option>
         <option>Dark &amp; gritty</option>
         <option>Warm &amp; cosy</option>
@@ -367,6 +407,15 @@ select:focus{border-color:var(--gold)}
         <option>Humorous &amp; light</option>
         <option>Romantic &amp; emotional</option>
         <option>Philosophical &amp; introspective</option>
+        <option>Fast-paced &amp; action-heavy</option>
+        <option>Slow burn &amp; atmospheric</option>
+        <option>Bittersweet &amp; melancholic</option>
+        <option>Hopeful &amp; uplifting</option>
+        <option>Suspenseful &amp; unpredictable</option>
+        <option>Whimsical &amp; magical</option>
+        <option>Raw &amp; emotional</option>
+        <option>Satirical &amp; clever</option>
+        <option>Poetic &amp; lyrical</option>
       </select>
     </div>
 
@@ -458,9 +507,13 @@ const PROVIDERS={
 };
 
 // ════════════ GENRE COMBO ════════════
-const PRESETS=['Fantasy','Science Fiction','Mystery','Romance','Thriller','Horror',
-  'Historical Fiction','Adventure','Literary Fiction','Dark Fantasy','Cyberpunk',
-  'Steampunk','Mythology','Slice of Life','Isekai','Post-Apocalyptic'];
+const PRESETS=['Adventure','Action','Survival','Heist','Fantasy','Dark Fantasy',
+  'High Fantasy','Urban Fantasy','Mythology','Fairy Tale','Isekai','Xianxia / Wuxia',
+  'Science Fiction','Cyberpunk','Steampunk','Space Opera','Post-Apocalyptic','Dystopian',
+  'Time Travel','LitRPG','Mystery','Thriller','Crime','Detective','Psychological Thriller',
+  'Spy','Horror','Supernatural Horror','Psychological Horror','Gothic','Romance',
+  'Historical Romance','Fantasy Romance','Literary Fiction','Historical Fiction',
+  'Slice of Life','Coming of Age','Biographical'];
 
 function openGenreDropdown(){
   filterGenreOptions();
@@ -507,7 +560,7 @@ function filterGenreOptions(){
 document.addEventListener('click',e=>{
   if(!document.getElementById('genreWrap').contains(e.target)) closeGenreDropdown();
 });
-function getGenre(){ return document.getElementById('genreInput').value.trim()||'Fiction'; }
+function getGenre(){ return document.getElementById('genreInput').value.trim()||''; }
 
 // ════════════ MODE ════════════
 function setMode(m){
@@ -658,8 +711,8 @@ Start with "# Chapter ${chapNum}: [Creative Title]" then write the chapter.
 Write approximately ${wc} words. Write ONLY the story — no author notes, no summaries.
 
 STORY OVERVIEW:
-Genre: ${getGenre()}
-Tone: ${getVal('storyTone')}
+${getGenre() ? 'Genre: '+getGenre() : '(No specific genre — let the story define itself)'}
+${getVal('storyTone') ? 'Tone: '+getVal('storyTone') : '(No specific tone — write naturally)'}
 Summary: ${getVal('storySummary')}
 Main Characters: ${getVal('mainChars')||'As established in the story'}
 Total planned chapters: ${total}
