@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0e0c0a"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Story Forge"/>
+<title>The Story Forge</title>
+<link rel="manifest" href="manifest.json"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Crimson+Pro:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0e0c0a;--card:#1a1714;--border:#2e2a24;--gold:#e8c97e;
+  --text:#f0e8d8;--muted:#7a7060;--dim:#5a5248;--green:#8bc88b;--red:#f08080;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Crimson Pro',serif;min-height:100vh;min-height:100dvh}
+.app{max-width:860px;margin:0 auto;padding:24px 16px 140px;padding-bottom:calc(140px + env(safe-area-inset-bottom))}
+
+/* ── Header ── */
+.header{text-align:center;margin-bottom:22px}
+.header h1{font-family:'Playfair Display',serif;font-size:clamp(1.8rem,7vw,3rem);font-weight:400;color:var(--gold);letter-spacing:-0.02em}
+.header p{color:var(--muted);font-size:clamp(.85rem,3.5vw,1.05rem);margin-top:5px;font-style:italic}
+.divider{width:50px;height:1px;background:var(--gold);margin:10px auto;opacity:.5}
+
+/* ── Cards ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 16px;margin-bottom:14px}
+.card-title{color:var(--gold);margin-bottom:14px;letter-spacing:.05em;text-transform:uppercase;font-size:.75rem}
+
+/* ── Forms ── */
+label{display:block;color:var(--muted);font-size:.8rem;margin-bottom:5px;letter-spacing:.04em;text-transform:uppercase}
+textarea,input[type=text],input[type=number],input[type=password]{
+  width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'Crimson Pro',serif;font-size:16px;
+  padding:13px 14px;resize:vertical;outline:none;transition:border-color .2s;-webkit-appearance:none
+}
+textarea:focus,input:focus{border-color:var(--gold)}
+textarea::placeholder,input::placeholder{color:#3a3530;font-style:italic}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+
+/* ── Genre combo (type + suggestions) ── */
+.genre-wrap{position:relative}
+.genre-input{padding-right:40px!important}
+.genre-arrow{
+  position:absolute;right:0;top:0;bottom:0;width:40px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;color:var(--muted);font-size:.8rem;border-radius:0 8px 8px 0;
+  transition:color .2s
+}
+.genre-arrow:active{color:var(--gold)}
+.genre-dropdown{
+  display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  z-index:200;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.5)
+}
+.genre-dropdown.open{display:block}
+.genre-option{
+  padding:12px 16px;cursor:pointer;font-size:.95rem;color:var(--text);
+  border-bottom:1px solid var(--border);transition:background .15s
+}
+.genre-option:last-child{border-bottom:none}
+.genre-option:active,.genre-option:hover{background:rgba(232,201,126,.08);color:var(--gold)}
+.genre-option.custom-hint{color:var(--dim);font-style:italic;font-size:.85rem}
+
+/* ── Select (for tone/wordcount) ── */
+select{
+  background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);
+  font-family:'Crimson Pro',serif;font-size:16px;padding:13px 36px 13px 14px;
+  outline:none;width:100%;-webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7060' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;transition:border-color .2s
+}
+select:focus{border-color:var(--gold)}
+
+/* ── Buttons ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 20px;border:none;border-radius:10px;font-family:'Crimson Pro',serif;
+  font-size:1rem;cursor:pointer;transition:all .18s;white-space:nowrap;
+  min-height:48px;touch-action:manipulation
+}
+.btn-primary{background:var(--gold);color:#1a1000;font-weight:600}
+.btn-primary:active{transform:scale(.97);background:#dfc070}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border)}
+.btn-ghost:active{border-color:var(--gold);color:var(--gold)}
+.btn-sm{padding:9px 14px;font-size:.85rem;min-height:38px;border-radius:8px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+@media(hover:hover){
+  .btn-primary:hover:not(:disabled){background:#f0d890;transform:translateY(-1px)}
+  .btn-ghost:hover:not(:disabled){border-color:var(--gold);color:var(--gold)}
+}
+
+/* ── Sticky bottom bar ── */
+.sticky-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(14,12,10,.97);border-top:1px solid var(--border);
+  padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));
+  display:flex;gap:10px;align-items:center;z-index:100;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
+}
+.sticky-bar .btn-primary{flex:1}
+.sticky-bar .btn-ghost{flex:0 0 auto}
+
+/* ── Mode tabs ── */
+.mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.mode-tab{
+  padding:12px 8px;border-radius:10px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:'Crimson Pro',serif;
+  cursor:pointer;transition:all .18s;display:flex;flex-direction:column;
+  align-items:center;gap:5px;min-height:64px
+}
+.mode-tab.active{border-color:var(--gold);color:var(--gold);background:rgba(232,201,126,.08)}
+.mode-tab .mode-icon{font-size:1.3rem}
+.mode-tab .mode-label{font-size:.78rem;text-align:center;line-height:1.3}
+.mode-tab .mode-sub{color:var(--dim);font-size:.7rem}
+
+/* ── Status ── */
+.status-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem;flex-wrap:wrap}
+.status-ok  {background:rgba(100,200,100,.08);border:1px solid rgba(100,200,100,.25);color:var(--green)}
+.status-err {background:rgba(220,80,80,.08);border:1px solid rgba(220,80,80,.25);color:var(--red)}
+.status-checking{background:rgba(232,201,126,.05);border:1px solid var(--border);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:var(--green)}
+.dot-err{background:var(--red);animation:blink 1.4s infinite}
+.dot-spin{width:14px;height:14px;border:2px solid #3a3530;border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.8)}}
+
+/* ── Ollama ── */
+.ollama-host-row{display:flex;gap:8px;margin-bottom:10px}
+.ollama-host-row input{flex:1}
+.hint-text{color:var(--dim);font-size:.82rem;line-height:1.6;margin-bottom:12px}
+.hint-text strong{color:var(--muted)}
+.code{font-family:monospace;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:2px 7px;color:#c0b090;font-size:.82rem;white-space:nowrap}
+.model-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.model-btn{
+  padding:10px 8px;border-radius:8px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:'Crimson Pro',serif;
+  cursor:pointer;transition:all .18s;text-align:left;display:flex;flex-direction:column;gap:3px
+}
+.model-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(232,201,126,.07)}
+.model-btn .mname{font-weight:600;font-size:.88rem}
+.model-btn .mdesc{font-size:.75rem;color:var(--dim);line-height:1.3}
+.model-btn.active .mdesc{color:#a09060}
+.collapsible-btn{
+  width:100%;padding:10px 14px;background:rgba(232,201,126,.05);
+  border:1px solid rgba(232,201,126,.15);border-radius:8px;
+  color:#a09060;font-family:'Crimson Pro',serif;font-size:.85rem;
+  cursor:pointer;text-align:left;display:flex;justify-content:space-between;
+  align-items:center;margin-bottom:10px
+}
+.collapsible-content{display:none;margin-bottom:4px}
+.collapsible-content.open{display:block}
+.os-tabs{display:flex;gap:6px;margin-bottom:10px}
+.os-tab{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Crimson Pro',serif;font-size:.8rem;cursor:pointer}
+.os-tab.active{border-color:var(--gold);color:var(--gold);background:rgba(232,201,126,.07)}
+.os-steps{display:none}
+.os-steps.active{display:block}
+.step{display:flex;gap:10px;margin-bottom:8px;font-size:.85rem;color:var(--muted);line-height:1.5}
+.step-num{background:var(--border);color:var(--gold);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:.75rem;flex-shrink:0;margin-top:2px}
+
+/* ── API providers ── */
+.provider-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.provider-tab{
+  padding:10px 6px;border-radius:10px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-family:'Crimson Pro',serif;
+  cursor:pointer;transition:all .18s;display:flex;flex-direction:column;
+  align-items:center;gap:5px;min-height:58px
+}
+.provider-tab.active{border-color:var(--gold);color:var(--gold);background:rgba(232,201,126,.08)}
+.provider-logo{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.logo-claude{background:#d4700a;color:#fff}
+.logo-openai{background:#10a37f;color:#fff}
+.logo-gemini{background:#4285f4;color:#fff}
+.provider-name{font-size:.72rem;text-align:center;line-height:1.2}
+.provider-info{background:rgba(232,201,126,.04);border:1px solid rgba(232,201,126,.15);border-radius:8px;padding:11px 14px;margin-bottom:12px;font-size:.85rem;color:var(--muted);line-height:1.5}
+.provider-info strong{color:#c0b090}
+.provider-info a{color:var(--gold);text-decoration:none}
+.key-row{display:flex;gap:8px}
+.key-row input{flex:1}
+.key-row .btn{padding:13px 14px;font-size:.9rem}
+.api-saved{color:var(--green);font-size:.82rem;margin-top:7px}
+
+/* ── Story/chapter UI ── */
+.memory-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;background:rgba(232,201,126,.07);border:1px solid rgba(232,201,126,.2);border-radius:6px;color:var(--muted);font-size:.8rem;margin-bottom:14px}
+.memory-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite;flex-shrink:0}
+.badge{display:inline-block;padding:2px 8px;background:rgba(232,201,126,.12);color:var(--gold);border-radius:3px;font-size:.75rem;border:1px solid rgba(232,201,126,.25)}
+.progress-line{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:12px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),#f0d890);transition:width .3s}
+.stream-preview{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;font-size:1rem;line-height:1.8;color:#d8cfbf;max-height:52vh;overflow-y:auto;white-space:pre-wrap;margin-top:12px;-webkit-overflow-scrolling:touch}
+.word-counter{color:var(--muted);font-size:.8rem;margin-top:6px}
+.error-msg{background:rgba(220,80,80,.1);border:1px solid rgba(220,80,80,.3);color:var(--red);padding:12px 14px;border-radius:10px;font-size:.88rem;margin-top:12px;line-height:1.5}
+.setup-complete{display:flex;align-items:center;gap:8px;color:var(--green);font-size:.85rem;margin-top:12px}
+.mode-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:.75rem;border:1px solid var(--border);color:var(--dim);margin-bottom:14px}
+.chapter-item{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+.chapter-header{display:flex;align-items:center;padding:13px 14px;cursor:pointer;border-bottom:1px solid transparent;min-height:52px}
+.chapter-header:active{background:rgba(232,201,126,.05)}
+.chapter-header.open{border-bottom-color:var(--border)}
+.chapter-num{font-family:'Playfair Display',serif;font-style:italic;color:var(--gold);font-size:.8rem;margin-right:9px;white-space:nowrap}
+.chapter-title-text{font-family:'Playfair Display',serif;font-size:.93rem;flex:1;line-height:1.3}
+.chapter-words{color:var(--muted);font-size:.72rem;margin-right:7px;white-space:nowrap}
+.chapter-body{padding:16px;font-size:1rem;line-height:1.85;color:#d8cfbf;white-space:pre-wrap}
+.chapters-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.chapters-header span{font-family:'Playfair Display',serif;color:var(--gold);font-size:1rem}
+.empty-state{text-align:center;padding:28px 16px;color:var(--muted);font-style:italic}
+.empty-state .big-num{font-family:'Playfair Display',serif;font-size:3rem;color:#2a2520;display:block;line-height:1;margin-bottom:8px}
+.complete-box{text-align:center;padding:28px 16px}
+.complete-box .emoji{font-size:2rem;margin-bottom:8px}
+.complete-box h2{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold);margin-bottom:8px}
+.complete-box p{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <h1>The Story Forge</h1>
+    <div class="divider"></div>
+    <p>AI story writing — local or cloud, your choice</p>
+  </div>
+
+  <!-- ── CONNECTION CARD ── -->
+  <div class="card" id="connectionCard">
+    <div class="card-title">✦ AI Connection</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('ollama')" id="modeTab-ollama">
+        <span class="mode-icon">🖥️</span>
+        <span class="mode-label">Local AI<br><span class="mode-sub">Ollama — free, no key</span></span>
+      </button>
+      <button class="mode-tab" onclick="setMode('api')" id="modeTab-api">
+        <span class="mode-icon">☁️</span>
+        <span class="mode-label">Cloud AI<br><span class="mode-sub">Claude / ChatGPT / Gemini</span></span>
+      </button>
+    </div>
+
+    <!-- OLLAMA PANEL -->
+    <div id="ollamaPanel">
+      <div class="status-row status-checking" id="ollamaStatus">
+        <div class="dot-spin" id="ollamaStatusIcon"></div>
+        <span id="ollamaStatusText">Looking for Ollama...</span>
+        <button class="btn btn-ghost btn-sm" onclick="detectOllama()" style="margin-left:auto">Retry</button>
+      </div>
+      <div id="ollamaHostSection" style="display:none">
+        <div class="field">
+          <label>Ollama Host</label>
+          <div class="ollama-host-row">
+            <input type="text" id="ollamaHost" value="http://localhost:11434" placeholder="http://localhost:11434"/>
+            <button class="btn btn-ghost btn-sm" onclick="detectOllama()">Connect</button>
+          </div>
+        </div>
+        <div class="hint-text">
+          📱 <strong>On mobile (same WiFi as PC)?</strong><br>
+          Replace <span class="code">localhost</span> with your PC's IP — e.g. <span class="code">http://192.168.1.42:11434</span><br>
+          Find your PC's IP: Windows → <span class="code">ipconfig</span> · Mac/Linux → <span class="code">ifconfig</span><br>
+          Enable network access on PC: <span class="code">OLLAMA_HOST=0.0.0.0 ollama serve</span>
+        </div>
+      </div>
+      <div id="modelPicker" style="display:none">
+        <label style="margin-bottom:10px">Model</label>
+        <div class="model-grid">
+          <button class="model-btn active" onclick="selectModel('llama3.2')" id="mbtn-llama3.2"><span class="mname">Llama 3.2</span><span class="mdesc">Fast, great quality</span></button>
+          <button class="model-btn" onclick="selectModel('mistral')" id="mbtn-mistral"><span class="mname">Mistral</span><span class="mdesc">Creative & expressive</span></button>
+          <button class="model-btn" onclick="selectModel('llama3.1')" id="mbtn-llama3.1"><span class="mname">Llama 3.1</span><span class="mdesc">Larger, richer detail</span></button>
+          <button class="model-btn" onclick="selectModel('phi3')" id="mbtn-phi3"><span class="mname">Phi-3</span><span class="mdesc">Lightweight, fast</span></button>
+        </div>
+        <input type="text" id="customModel" placeholder="Or type any model name..." oninput="selectModel(this.value)" style="margin-top:6px"/>
+      </div>
+      <button class="collapsible-btn" onclick="toggleInstall()">📖 How to install Ollama <span id="installArrow">▼</span></button>
+      <div class="collapsible-content" id="installGuide">
+        <div class="os-tabs">
+          <button class="os-tab active" onclick="switchOS('win')">Windows</button>
+          <button class="os-tab" onclick="switchOS('mac')">Mac</button>
+          <button class="os-tab" onclick="switchOS('linux')">Linux</button>
+        </div>
+        <div class="os-steps active" id="steps-win">
+          <div class="step"><div class="step-num">1</div><div>Download from <strong style="color:#c0b090">ollama.com</strong> and run installer</div></div>
+          <div class="step"><div class="step-num">2</div><div>Open Command Prompt: <span class="code">ollama pull llama3.2</span></div></div>
+          <div class="step"><div class="step-num">3</div><div>For phone access: <span class="code">set OLLAMA_HOST=0.0.0.0 && ollama serve</span></div></div>
+        </div>
+        <div class="os-steps" id="steps-mac">
+          <div class="step"><div class="step-num">1</div><div>Download from <strong style="color:#c0b090">ollama.com</strong>, drag to Applications</div></div>
+          <div class="step"><div class="step-num">2</div><div>Terminal: <span class="code">ollama pull llama3.2</span></div></div>
+          <div class="step"><div class="step-num">3</div><div>For phone: <span class="code">OLLAMA_HOST=0.0.0.0 ollama serve</span></div></div>
+        </div>
+        <div class="os-steps" id="steps-linux">
+          <div class="step"><div class="step-num">1</div><div><span class="code">curl -fsSL https://ollama.com/install.sh | sh</span></div></div>
+          <div class="step"><div class="step-num">2</div><div><span class="code">ollama pull llama3.2</span></div></div>
+          <div class="step"><div class="step-num">3</div><div><span class="code">OLLAMA_HOST=0.0.0.0 ollama serve</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API PANEL -->
+    <div id="apiPanel" style="display:none">
+      <div class="provider-tabs">
+        <button class="provider-tab active" onclick="selectProvider('claude')" id="ptab-claude"><div class="provider-logo logo-claude">C</div><span class="provider-name">Claude<br>Anthropic</span></button>
+        <button class="provider-tab" onclick="selectProvider('openai')" id="ptab-openai"><div class="provider-logo logo-openai">G</div><span class="provider-name">ChatGPT<br>OpenAI</span></button>
+        <button class="provider-tab" onclick="selectProvider('gemini')" id="ptab-gemini"><div class="provider-logo logo-gemini">G</div><span class="provider-name">Gemini<br>Google</span></button>
+      </div>
+      <div class="provider-info" id="pinfo-claude"><strong>Claude by Anthropic</strong> — Best for rich, consistent long-form stories.<br>Get a key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></div>
+      <div class="provider-info" id="pinfo-openai" style="display:none"><strong>GPT-4o by OpenAI</strong> — Great for dialogue-heavy stories.<br>Get a key at <a href="https://platform.openai.com/api-keys" target="_blank">platform.openai.com</a></div>
+      <div class="provider-info" id="pinfo-gemini" style="display:none"><strong>Gemini 2.0 Flash by Google</strong> — Strong world-building, free tier.<br>Get a key at <a href="https://aistudio.google.com/app/apikey" target="_blank">aistudio.google.com</a></div>
+      <div class="key-row">
+        <input type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
+        <button class="btn btn-primary btn-sm" onclick="saveApiKey()">Save</button>
+        <button class="btn btn-ghost btn-sm" id="eyeBtn" onclick="toggleEye()">Show</button>
+      </div>
+      <div id="apiSaved" class="api-saved" style="display:none">✓ Key saved</div>
+    </div>
+  </div>
+
+  <!-- ── STORY SETUP ── -->
+  <div class="card">
+    <div class="card-title">✦ Story Setup</div>
+
+    <div class="field">
+      <label>Story Summary &amp; Details</label>
+      <textarea id="storySummary" rows="5" placeholder="Describe your story idea... characters, conflict, world, themes..."></textarea>
+    </div>
+
+    <!-- ── FREE-TYPE GENRE ── -->
+    <div class="field">
+      <label>Genre</label>
+      <div class="genre-wrap" id="genreWrap">
+        <input type="text" id="genreInput" class="genre-input"
+               placeholder="e.g. Fantasy, Sci-Fi, Horror, or invent your own..."
+               value="Fantasy"
+               oninput="onGenreType()"
+               onfocus="openGenreDropdown()"
+               autocomplete="off"/>
+        <div class="genre-arrow" onclick="toggleGenreDropdown()">▼</div>
+        <div class="genre-dropdown" id="genreDropdown">
+          <div class="genre-option" onclick="pickGenre('Fantasy')">Fantasy</div>
+          <div class="genre-option" onclick="pickGenre('Science Fiction')">Science Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Mystery')">Mystery</div>
+          <div class="genre-option" onclick="pickGenre('Romance')">Romance</div>
+          <div class="genre-option" onclick="pickGenre('Thriller')">Thriller</div>
+          <div class="genre-option" onclick="pickGenre('Horror')">Horror</div>
+          <div class="genre-option" onclick="pickGenre('Historical Fiction')">Historical Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Adventure')">Adventure</div>
+          <div class="genre-option" onclick="pickGenre('Literary Fiction')">Literary Fiction</div>
+          <div class="genre-option" onclick="pickGenre('Dark Fantasy')">Dark Fantasy</div>
+          <div class="genre-option" onclick="pickGenre('Cyberpunk')">Cyberpunk</div>
+          <div class="genre-option" onclick="pickGenre('Steampunk')">Steampunk</div>
+          <div class="genre-option" onclick="pickGenre('Mythology')">Mythology</div>
+          <div class="genre-option" onclick="pickGenre('Slice of Life')">Slice of Life</div>
+          <div class="genre-option" onclick="pickGenre('Isekai')">Isekai</div>
+          <div class="genre-option" onclick="pickGenre('Post-Apocalyptic')">Post-Apocalyptic</div>
+          <div class="genre-option custom-hint" id="customGenreHint" style="display:none">✎ Use "<span id="customGenrePreview"></span>" as custom genre</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Tone</label>
+      <select id="storyTone">
+        <option>Epic &amp; adventurous</option>
+        <option>Dark &amp; gritty</option>
+        <option>Warm &amp; cosy</option>
+        <option>Mysterious &amp; tense</option>
+        <option>Humorous &amp; light</option>
+        <option>Romantic &amp; emotional</option>
+        <option>Philosophical &amp; introspective</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Total Chapters</label>
+      <input type="number" id="totalChapters" value="5" min="1" max="30"/>
+    </div>
+
+    <div class="field">
+      <label>Main Characters (optional)</label>
+      <input type="text" id="mainChars" placeholder="e.g. Elara — young mage; Drennan — gruff mercenary..."/>
+    </div>
+
+    <div id="setupStatus" class="setup-complete" style="display:none">
+      <span>✓</span><span id="setupStatusText"></span>
+    </div>
+  </div>
+
+  <!-- ── CHAPTER GENERATOR ── -->
+  <div class="card" id="chapterCard">
+    <div class="card-title" id="chapterCardTitle">✦ Chapter 1</div>
+    <div id="modePill" class="mode-pill" style="display:none">
+      <div class="dot dot-ok"></div><span id="modePillText">Local AI</span>
+    </div>
+    <div id="memoryBadge" class="memory-badge" style="display:none">
+      <div class="memory-dot"></div>
+      <span id="memoryText">Story memory active</span>
+    </div>
+    <div class="field">
+      <label>Chapter Suggestions (optional)</label>
+      <textarea id="chapterSuggestion" rows="3" placeholder="What should happen? Who appears? Any scenes or plot points?"></textarea>
+    </div>
+    <div class="field">
+      <label>Target Word Count</label>
+      <select id="wordCount">
+        <option value="300">300 words</option>
+        <option value="500">500 words</option>
+        <option value="600" selected>600 words</option>
+        <option value="800">800 words</option>
+        <option value="1000">1000 words</option>
+        <option value="1500">1500 words</option>
+        <option value="2000">2000 words</option>
+      </select>
+    </div>
+    <div id="errorMsg" class="error-msg" style="display:none"></div>
+    <div id="streamContainer" style="display:none">
+      <div class="progress-line"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+      <div class="stream-preview" id="streamPreview"></div>
+      <div class="word-counter" id="wordCounter"></div>
+    </div>
+  </div>
+
+  <!-- Complete -->
+  <div class="card complete-box" id="completeBox" style="display:none">
+    <div class="emoji">🎉</div>
+    <h2>Your story is complete!</h2>
+    <p id="completeStats"></p>
+  </div>
+
+  <!-- Chapters list -->
+  <div id="chaptersSection" style="display:none">
+    <div class="chapters-header">
+      <span>Written Chapters</span>
+      <span class="badge" id="chapterCountBadge">0</span>
+    </div>
+    <div id="chaptersList"></div>
+  </div>
+
+  <div class="empty-state" id="emptyState">
+    <span class="big-num">I.</span>
+    Connect your AI, fill in the story details, and begin
+  </div>
+</div>
+
+<!-- Sticky bar -->
+<div class="sticky-bar" id="stickyBar">
+  <button class="btn btn-primary" id="generateBtn" onclick="generateChapter()">✦ Generate Chapter 1</button>
+  <button class="btn btn-ghost" id="redoBtn" onclick="redoChapter()" style="display:none">↺ Redo</button>
+</div>
+
+<script>
+// ════════════ STATE ════════════
+let mode='ollama', ollamaReady=false, ollamaHost='http://localhost:11434';
+let selectedModel='llama3.2', apiProvider='claude', apiKey='', chapters=[], generating=false;
+const PROVIDERS={
+  claude:{model:'claude-sonnet-4-20250514',placeholder:'sk-ant-...'},
+  openai:{model:'gpt-4o',placeholder:'sk-...'},
+  gemini:{model:'gemini-2.0-flash',placeholder:'AIza...'}
+};
+
+// ════════════ GENRE COMBO ════════════
+const PRESETS=['Fantasy','Science Fiction','Mystery','Romance','Thriller','Horror',
+  'Historical Fiction','Adventure','Literary Fiction','Dark Fantasy','Cyberpunk',
+  'Steampunk','Mythology','Slice of Life','Isekai','Post-Apocalyptic'];
+
+function openGenreDropdown(){
+  filterGenreOptions();
+  document.getElementById('genreDropdown').classList.add('open');
+}
+function closeGenreDropdown(){
+  document.getElementById('genreDropdown').classList.remove('open');
+}
+function toggleGenreDropdown(){
+  const dd=document.getElementById('genreDropdown');
+  if(dd.classList.contains('open')) closeGenreDropdown();
+  else openGenreDropdown();
+}
+function pickGenre(val){
+  document.getElementById('genreInput').value=val;
+  closeGenreDropdown();
+}
+function onGenreType(){
+  filterGenreOptions();
+  document.getElementById('genreDropdown').classList.add('open');
+}
+function filterGenreOptions(){
+  const q=document.getElementById('genreInput').value.toLowerCase();
+  const opts=document.querySelectorAll('.genre-option:not(.custom-hint)');
+  let anyVisible=false;
+  opts.forEach(o=>{
+    const match=o.textContent.toLowerCase().includes(q);
+    o.style.display=match?'block':'none';
+    if(match) anyVisible=true;
+  });
+  // show "use as custom" hint if typed something not matching a preset exactly
+  const hint=document.getElementById('customGenreHint');
+  const preview=document.getElementById('customGenrePreview');
+  const val=document.getElementById('genreInput').value.trim();
+  const isPreset=PRESETS.some(p=>p.toLowerCase()===val.toLowerCase());
+  if(val && !isPreset){
+    hint.style.display='block';
+    preview.textContent=val;
+  } else {
+    hint.style.display='none';
+  }
+}
+// Close dropdown when clicking outside
+document.addEventListener('click',e=>{
+  if(!document.getElementById('genreWrap').contains(e.target)) closeGenreDropdown();
+});
+function getGenre(){ return document.getElementById('genreInput').value.trim()||'Fiction'; }
+
+// ════════════ MODE ════════════
+function setMode(m){
+  mode=m;
+  document.getElementById('modeTab-ollama').classList.toggle('active',m==='ollama');
+  document.getElementById('modeTab-api').classList.toggle('active',m==='api');
+  document.getElementById('ollamaPanel').style.display=m==='ollama'?'block':'none';
+  document.getElementById('apiPanel').style.display=m==='api'?'block':'none';
+  updateModePill();
+}
+function updateModePill(){
+  const pill=document.getElementById('modePill');
+  const text=document.getElementById('modePillText');
+  if(mode==='ollama'&&ollamaReady){pill.style.display='inline-flex';text.textContent='🖥️ Local · '+selectedModel;}
+  else if(mode==='api'&&apiKey){pill.style.display='inline-flex';text.textContent='☁️ '+apiProvider;}
+  else pill.style.display='none';
+}
+
+// ════════════ OLLAMA ════════════
+async function detectOllama(){
+  const hi=document.getElementById('ollamaHost');
+  if(hi) ollamaHost=hi.value.trim()||'http://localhost:11434';
+  setOllamaStatus('checking','Connecting to '+ollamaHost+'...');
+  try{
+    const res=await fetch(ollamaHost+'/api/tags',{signal:AbortSignal.timeout(5000)});
+    if(!res.ok) throw new Error();
+    const data=await res.json();
+    const models=(data.models||[]).map(m=>m.name);
+    ollamaReady=true;
+    setOllamaStatus('ok','✓ Connected'+(models.length?' · '+models.length+' model(s)':' · No models yet'));
+    document.getElementById('modelPicker').style.display='block';
+    if(models.length>0) selectModel(models[0].split(':')[0]);
+  }catch{
+    ollamaReady=false;
+    const local=ollamaHost.includes('localhost')||ollamaHost.includes('127.0.0.1');
+    setOllamaStatus('err',local?'Ollama not found. Install below or switch to Cloud AI.':'Cannot reach '+ollamaHost+'. Check IP and OLLAMA_HOST setting.');
+    document.getElementById('modelPicker').style.display='none';
+  }
+  document.getElementById('ollamaHostSection').style.display='block';
+  updateModePill();
+}
+function setOllamaStatus(type,msg){
+  const row=document.getElementById('ollamaStatus');
+  const text=document.getElementById('ollamaStatusText');
+  row.className='status-row status-'+(type==='ok'?'ok':type==='err'?'err':'checking');
+  const icon=document.getElementById('ollamaStatusIcon');
+  if(type==='ok') icon.outerHTML='<div class="dot dot-ok" id="ollamaStatusIcon"></div>';
+  else if(type==='err') icon.outerHTML='<div class="dot dot-err" id="ollamaStatusIcon"></div>';
+  else icon.outerHTML='<div class="dot-spin" id="ollamaStatusIcon"></div>';
+  text.textContent=msg;
+}
+function selectModel(n){
+  if(!n) return;
+  selectedModel=n.trim();
+  document.querySelectorAll('.model-btn').forEach(b=>b.classList.remove('active'));
+  const b=document.getElementById('mbtn-'+selectedModel);
+  if(b) b.classList.add('active');
+  updateModePill();
+}
+function toggleInstall(){const g=document.getElementById('installGuide');const a=document.getElementById('installArrow');const o=g.classList.toggle('open');a.textContent=o?'▲':'▼';}
+function switchOS(os){document.querySelectorAll('.os-tab').forEach((t,i)=>t.classList.toggle('active',['win','mac','linux'][i]===os));document.querySelectorAll('.os-steps').forEach(s=>s.classList.remove('active'));document.getElementById('steps-'+os).classList.add('active');}
+
+// ════════════ API ════════════
+function selectProvider(p){
+  apiProvider=p;
+  ['claude','openai','gemini'].forEach(id=>{
+    document.getElementById('ptab-'+id).classList.toggle('active',id===p);
+    document.getElementById('pinfo-'+id).style.display=id===p?'block':'none';
+  });
+  const inp=document.getElementById('apiKeyInput');
+  inp.value='';inp.placeholder=PROVIDERS[p].placeholder;
+  document.getElementById('apiSaved').style.display='none';
+  apiKey='';updateModePill();
+}
+function saveApiKey(){const v=document.getElementById('apiKeyInput').value.trim();if(!v){alert('Please enter your API key.');return;}apiKey=v;document.getElementById('apiSaved').style.display='block';updateModePill();}
+function toggleEye(){const i=document.getElementById('apiKeyInput');const b=document.getElementById('eyeBtn');i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'Show':'Hide';}
+
+// ════════════ HELPERS ════════════
+function countWords(t){return t.trim().split(/\s+/).filter(Boolean).length;}
+function getVal(id){return document.getElementById(id).value.trim();}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showError(msg){const e=document.getElementById('errorMsg');e.textContent='⚠ '+msg;e.style.display=msg?'block':'none';}
+function extractTitle(t){return t.trim().split('\n')[0].replace(/^#+\s*/,'').trim()||'Chapter '+(chapters.length+1);}
+function setDisabled(d){['storySummary','storyGenre','storyTone','totalChapters','mainChars','chapterSuggestion','wordCount','generateBtn'].forEach(id=>{const el=document.getElementById(id);if(el)el.disabled=d;});generating=d;}
+
+// ════════════ STREAMING ════════════
+async function streamOllama(prompt,onChunk){
+  if(!ollamaReady) throw new Error('Ollama not connected.');
+  const res=await fetch(ollamaHost+'/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selectedModel,prompt,stream:true})});
+  if(!res.ok){const e=await res.json().catch(()=>({}));if((e.error||'').includes('not found')) throw new Error('Model "'+selectedModel+'" not downloaded. Run: ollama pull '+selectedModel);throw new Error(e.error||'Ollama error '+res.status);}
+  const reader=res.body.getReader();const dec=new TextDecoder();let full='';
+  while(true){const{done,value}=await reader.read();if(done)break;for(const line of dec.decode(value,{stream:true}).split('\n')){if(!line.trim())continue;try{const j=JSON.parse(line);if(j.response){full+=j.response;onChunk(full);}if(j.done)return full;}catch{}}}
+  return full;
+}
+async function streamAPI(prompt,onChunk){
+  if(!apiKey) throw new Error('Please save your API key first.');
+  if(apiProvider==='claude'){
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:PROVIDERS.claude.model,max_tokens:3000,stream:true,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'Claude error');}
+    return readSSE(res,j=>j.type==='content_block_delta'&&j.delta?.text?j.delta.text:null,onChunk);
+  }
+  if(apiProvider==='openai'){
+    const res=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:PROVIDERS.openai.model,max_tokens:3000,stream:true,messages:[{role:'user',content:prompt}]})});
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'OpenAI error');}
+    return readSSE(res,j=>j.choices?.[0]?.delta?.content||null,onChunk);
+  }
+  if(apiProvider==='gemini'){
+    const url=`https://generativelanguage.googleapis.com/v1beta/models/${PROVIDERS.gemini.model}:streamGenerateContent?key=${apiKey}&alt=sse`;
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:3000}})});
+    if(!res.ok){const e=await res.json();throw new Error(e.error?.message||'Gemini error');}
+    return readSSE(res,j=>j.candidates?.[0]?.content?.parts?.[0]?.text||null,onChunk);
+  }
+}
+async function readSSE(res,extract,onChunk){
+  const reader=res.body.getReader();const dec=new TextDecoder();let full='';
+  while(true){const{done,value}=await reader.read();if(done)break;for(const line of dec.decode(value,{stream:true}).split('\n')){if(!line.startsWith('data: '))continue;const d=line.slice(6).trim();if(d==='[DONE]')continue;try{const tok=extract(JSON.parse(d));if(tok){full+=tok;onChunk(full);}}catch{}}}
+  return full;
+}
+async function quickSummary(text){
+  const p='Summarize this story chapter in exactly 2 sentences focusing on key plot events:\n\n'+text;
+  try{
+    if(mode==='ollama'){const r=await fetch(ollamaHost+'/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:selectedModel,prompt:p,stream:false})});return(await r.json()).response||'';}
+    if(apiProvider==='claude'){const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:PROVIDERS.claude.model,max_tokens:120,messages:[{role:'user',content:p}]})});return(await r.json()).content?.[0]?.text||'';}
+    if(apiProvider==='openai'){const r=await fetch('https://api.openai.com/v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+apiKey},body:JSON.stringify({model:PROVIDERS.openai.model,max_tokens:120,messages:[{role:'user',content:p}]})});return(await r.json()).choices?.[0]?.message?.content||'';}
+    if(apiProvider==='gemini'){const url=`https://generativelanguage.googleapis.com/v1beta/models/${PROVIDERS.gemini.model}:generateContent?key=${apiKey}`;const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:p}]}],generationConfig:{maxOutputTokens:120}})});return(await r.json()).candidates?.[0]?.content?.parts?.[0]?.text||'';}
+  }catch{return'';}
+  return'';
+}
+
+// ════════════ PROMPT ════════════
+function buildPrompt(chapNum,wc,hint){
+  const total=parseInt(getVal('totalChapters'))||5;
+  let p=`You are a skilled fiction writer. Write immersive, vivid prose.
+Start with "# Chapter ${chapNum}: [Creative Title]" then write the chapter.
+Write approximately ${wc} words. Write ONLY the story — no author notes, no summaries.
+
+STORY OVERVIEW:
+Genre: ${getGenre()}
+Tone: ${getVal('storyTone')}
+Summary: ${getVal('storySummary')}
+Main Characters: ${getVal('mainChars')||'As established in the story'}
+Total planned chapters: ${total}
+`;
+  if(chapters.length>0){p+='\nPREVIOUS CHAPTERS:\n';chapters.forEach(c=>{p+=`- Chapter ${c.num} "${c.title}": ${c.summary}\n`;});}
+  if(hint) p+='\nCHAPTER HINTS:\n'+hint+'\n';
+  p+=`\nNow write Chapter ${chapNum} of ${total}. Begin immediately with the chapter heading.`;
+  return p;
+}
+
+// ════════════ GENERATE ════════════
+async function generateChapter(isRedo){
+  showError('');
+  if(mode==='ollama'&&!ollamaReady){showError('Ollama is not connected. Set it up above or switch to Cloud AI.');return;}
+  if(mode==='api'&&!apiKey){showError('Please save your API key first.');return;}
+  if(!getVal('storySummary')){showError('Please fill in the story summary first.');return;}
+  const chapNum=isRedo?chapters.length:chapters.length+1;
+  const wc=parseInt(document.getElementById('wordCount').value);
+  const hint=getVal('chapterSuggestion');
+  setDisabled(true);
+  document.getElementById('streamContainer').style.display='block';
+  document.getElementById('streamPreview').textContent='';
+  document.getElementById('progressFill').style.width='0%';
+  document.getElementById('generateBtn').textContent='⏳ Writing...';
+  try{
+    const prompt=buildPrompt(chapNum,wc,hint);
+    const fn=mode==='ollama'?streamOllama:streamAPI;
+    const fullText=await fn(prompt,(partial)=>{
+      document.getElementById('streamPreview').textContent=partial;
+      const w=countWords(partial);
+      document.getElementById('progressFill').style.width=Math.min((w/wc)*100,100)+'%';
+      document.getElementById('wordCounter').textContent=w+' / '+wc+' words';
+    });
+    const summary=await quickSummary(fullText);
+    const ch={num:chapNum,title:extractTitle(fullText),text:fullText,summary,words:countWords(fullText)};
+    if(isRedo) chapters[chapters.length-1]=ch; else chapters.push(ch);
+    document.getElementById('chapterSuggestion').value='';
+    document.getElementById('streamContainer').style.display='none';
+    updateUI();
+  }catch(e){showError(e.message);}
+  finally{setDisabled(false);document.getElementById('generateBtn').textContent='✦ Generate Chapter '+(chapters.length+1);}
+}
+async function redoChapter(){if(!chapters.length||generating)return;chapters.pop();generateChapter(true);}
+
+// ════════════ RENDER ════════════
+function updateUI(){
+  const total=parseInt(getVal('totalChapters'))||5;
+  const current=chapters.length+1;
+  const done=chapters.length>=total;
+  document.getElementById('chapterCard').style.display=done?'none':'block';
+  document.getElementById('completeBox').style.display=done?'block':'none';
+  document.getElementById('stickyBar').style.display=done?'none':'flex';
+  if(!done){
+    document.getElementById('chapterCardTitle').textContent='✦ Chapter '+current+' of '+total;
+    document.getElementById('generateBtn').textContent='✦ Generate Chapter '+current;
+    document.getElementById('redoBtn').style.display=chapters.length>0?'inline-flex':'none';
+    document.getElementById('redoBtn').textContent='↺ Redo Ch.'+chapters.length;
+    const mb=document.getElementById('memoryBadge');
+    mb.style.display=chapters.length>0?'inline-flex':'none';
+    if(chapters.length>0) document.getElementById('memoryText').textContent='Story memory active — '+chapters.length+' chapter'+(chapters.length>1?'s':'')+' saved';
+  }else{
+    const tw=chapters.reduce((a,c)=>a+c.words,0);
+    document.getElementById('completeStats').textContent=total+' chapters · '+tw.toLocaleString()+' total words';
+  }
+  updateModePill();
+  if(chapters.length>0){
+    document.getElementById('setupStatus').style.display='flex';
+    document.getElementById('setupStatusText').textContent='Story in progress — '+chapters.length+'/'+total+' chapters';
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('chaptersSection').style.display='block';
+    document.getElementById('chapterCountBadge').textContent=chapters.length;
+    renderChapters();
+  }
+}
+function renderChapters(){
+  const list=document.getElementById('chaptersList');list.innerHTML='';
+  chapters.forEach(ch=>{
+    const item=document.createElement('div');item.className='chapter-item';
+    item.innerHTML='<div class="chapter-header" id="hdr-'+ch.num+'" onclick="toggleChapter('+ch.num+')"><span class="chapter-num">Ch. '+ch.num+'</span><span class="chapter-title-text">'+escHtml(ch.title)+'</span><span class="chapter-words">'+ch.words.toLocaleString()+'w</span><span style="color:var(--muted);font-size:.85rem" id="arr-'+ch.num+'">&#9660;</span></div><div class="chapter-body" id="body-'+ch.num+'" style="display:none">'+escHtml(ch.text)+'</div>';
+    list.appendChild(item);
+  });
+  if(chapters.length>0) toggleChapter(chapters[chapters.length-1].num,true);
+}
+function toggleChapter(num,forceOpen){
+  const body=document.getElementById('body-'+num);const hdr=document.getElementById('hdr-'+num);const arr=document.getElementById('arr-'+num);
+  if(!body)return;
+  const open=forceOpen!==undefined?forceOpen:body.style.display==='none';
+  body.style.display=open?'block':'none';hdr.classList.toggle('open',open);arr.innerHTML=open?'&#9650;':'&#9660;';
+}
+
+// ════════════ INIT ════════════
+detectOllama();updateUI();
+</script>
+</body>
+</html>
