@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+backend/static/
+backend/storyforge.db
+*.db
+
+# Node / React
+node_modules/
+frontend/dist/
+.DS_Store
+
+# Android
+storyforge-twa/.gradle/
+storyforge-twa/build/
+storyforge-twa/app/build/
+storyforge-twa/local.properties
+*.jks
+*.keystore
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
