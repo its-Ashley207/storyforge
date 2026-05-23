@@ -217,6 +217,26 @@ def _background_summarise(api_key: str, story_id: str,
 # Static / health routes
 # ---------------------------------------------------------------------------
 
+@app.route("/.well-known/assetlinks.json")
+def asset_links():
+    """
+    Digital Asset Links — required for TWA verification on Android / Play Store.
+    The SHA256 fingerprint must match the release keystore used to sign the APK.
+    """
+    return jsonify([
+        {
+            "relation": ["delegate_permission/common.handle_all_urls"],
+            "target": {
+                "namespace": "android_app",
+                "package_name": "com.storyforge.app",
+                "sha256_cert_fingerprints": [
+                    "A6:9D:05:3E:84:B6:C0:6D:CF:CF:61:F2:D5:79:39:55:7F:A0:0D:D0:45:72:D6:AA:07:00:3E:74:C0:95:39:43"
+                ]
+            }
+        }
+    ])
+
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_react(path: str):

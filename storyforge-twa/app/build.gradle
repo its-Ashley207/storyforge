@@ -14,9 +14,19 @@ android {
         versionName "1.0.0"
     }
 
+    signingConfigs {
+        release {
+            storeFile file('../storyforge-release.jks')
+            storePassword 'storyforge2024'
+            keyAlias 'storyforge'
+            keyPassword 'storyforge2024'
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
         }
     }
 
