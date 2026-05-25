@@ -6,7 +6,7 @@ import NavBar from '../components/NavBar.jsx'
 
 export default function Adventure() {
   const { id } = useParams()
-  const { apiKey, baseUrl } = useApp()
+  const { baseUrl } = useApp()
   const navigate = useNavigate()
 
   const [story, setStory]         = useState(null)
@@ -26,7 +26,7 @@ export default function Adventure() {
     setLoading(true)
     try {
       const res = await fetch(`${baseUrl}/api/stories/${id}`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const data = await res.json()
@@ -38,7 +38,7 @@ export default function Adventure() {
     } finally {
       setLoading(false)
     }
-  }, [id, apiKey, baseUrl])
+  }, [id, baseUrl])
 
   useEffect(() => { fetchStory() }, [fetchStory])
 
@@ -60,8 +60,7 @@ export default function Adventure() {
       const res = await fetch(`${baseUrl}/api/generate/adventure-node`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           story_id: id,

@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 
 PORT = int(os.environ.get("PORT", 8765))
 
+# Server-side DeepSeek API key — set this in Render environment variables
+DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+
 # Resolve the static folder relative to this file so it works regardless of
 # the working directory (important on Render.com).
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -69,25 +72,20 @@ DEEPSEEK_TIMEOUT = 90  # seconds for non-streaming calls
 # Helper utilities
 # ---------------------------------------------------------------------------
 
-def _api_key() -> str | None:
-    """Extract the DeepSeek API key from the X-API-Key request header."""
-    return request.headers.get("X-API-Key", "").strip() or None
+def _get_api_key() -> str:
+    """Return the server-side DeepSeek API key."""
+    return DEEPSEEK_API_KEY
 
 
-def _require_api_key() -> tuple[str, None] | tuple[None, Response]:
+def _require_api_key():
     """
-    Return (key, None) if header present, else (None, error_response).
-    Usage::
-        key, err = _require_api_key()
-        if err:
-            return err
+    Return (key, None) if server key configured, else (None, error_response).
     """
-    key = _api_key()
+    key = DEEPSEEK_API_KEY
     if not key:
         return None, (
-            jsonify({"error": "Missing X-API-Key header. "
-                              "Provide your DeepSeek API key."}),
-            401,
+            jsonify({"error": "Server AI key not configured. Contact the app owner."}),
+            503,
         )
     return key, None
 
@@ -282,31 +280,11 @@ def get_models():
 @app.route("/api/validate-key", methods=["POST"])
 def validate_key():
     """
-    Validate a DeepSeek API key by making a minimal, cheap API call.
-    Returns {"valid": true/false, "error": "..."}.
+    Returns whether the server has a DeepSeek API key configured.
     """
-    key, err = _require_api_key()
-    if err:
-        return err
-
-    try:
-        # Cheapest possible call: 1-token completion
-        _call_deepseek(
-            api_key=key,
-            messages=[{"role": "user", "content": "Hi"}],
-            max_tokens=1,
-            temperature=0.0,
-        )
+    if DEEPSEEK_API_KEY:
         return jsonify({"valid": True})
-    except requests.HTTPError as exc:
-        status = exc.response.status_code if exc.response else 0
-        if status in (401, 403):
-            return jsonify({"valid": False, "error": "Invalid API key"})
-        return jsonify({"valid": False,
-                        "error": f"API error {status}: {exc}"}), 502
-    except Exception as exc:
-        logger.warning("Key validation error: %s", exc)
-        return jsonify({"valid": False, "error": str(exc)}), 502
+    return jsonify({"valid": False, "error": "No API key configured on server"}), 503
 
 
 # ---------------------------------------------------------------------------

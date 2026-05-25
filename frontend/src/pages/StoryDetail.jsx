@@ -17,7 +17,7 @@ function getGenreClass(genre) {
 
 export default function StoryDetail() {
   const { id } = useParams()
-  const { apiKey, baseUrl } = useApp()
+  const { baseUrl } = useApp()
   const navigate = useNavigate()
 
   const [story, setStory]         = useState(null)
@@ -33,7 +33,7 @@ export default function StoryDetail() {
     setError('')
     try {
       const res = await fetch(`${baseUrl}/api/stories/${id}`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const data = await res.json()
@@ -43,7 +43,7 @@ export default function StoryDetail() {
     } finally {
       setLoading(false)
     }
-  }, [id, apiKey, baseUrl])
+  }, [id, baseUrl])
 
   useEffect(() => { fetchStory() }, [fetchStory])
 
@@ -53,7 +53,7 @@ export default function StoryDetail() {
     try {
       await fetch(`${baseUrl}/api/stories/${id}`, {
         method: 'DELETE',
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       navigate('/', { replace: true })
     } catch (e) {
@@ -66,7 +66,7 @@ export default function StoryDetail() {
     setExportLoading(format)
     try {
       const res = await fetch(`${baseUrl}/api/stories/${id}/export?format=${format}`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       if (!res.ok) throw new Error(`Export failed: ${res.status}`)
       const blob = await res.blob()

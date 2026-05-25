@@ -8,7 +8,7 @@ const WORD_COUNTS = [300, 500, 600, 800, 1000, 1500, 2000]
 
 export default function Write() {
   const { id } = useParams()
-  const { apiKey, baseUrl } = useApp()
+  const { baseUrl } = useApp()
   const navigate = useNavigate()
 
   const [story, setStory]           = useState(null)
@@ -29,7 +29,7 @@ export default function Write() {
     setError('')
     try {
       const res = await fetch(`${baseUrl}/api/stories/${id}`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const data = await res.json()
@@ -39,7 +39,7 @@ export default function Write() {
     } finally {
       setLoading(false)
     }
-  }, [id, apiKey, baseUrl])
+  }, [id, baseUrl])
 
   useEffect(() => { fetchStory() }, [fetchStory])
 
@@ -60,8 +60,7 @@ export default function Write() {
       const res = await fetch(`${baseUrl}/api/generate/chapter`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           story_id: id,
@@ -117,8 +116,7 @@ export default function Write() {
       await fetch(`${baseUrl}/api/stories/${id}/chapters`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ content: streamText, chapter_number: currentChapter }),
       })

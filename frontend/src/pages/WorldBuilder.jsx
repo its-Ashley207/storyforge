@@ -8,7 +8,7 @@ const ROLES = ['Hero', 'Villain', 'Mentor', 'Sidekick', 'Rival', 'Love interest'
 
 export default function WorldBuilder() {
   const { id } = useParams()
-  const { apiKey, baseUrl } = useApp()
+  const { baseUrl } = useApp()
   const navigate = useNavigate()
 
   const [story, setStory]           = useState(null)
@@ -29,7 +29,7 @@ export default function WorldBuilder() {
     setLoading(true)
     try {
       const res = await fetch(`${baseUrl}/api/stories/${id}`, {
-        headers: { 'X-API-Key': apiKey },
+        headers: { },
       })
       if (!res.ok) throw new Error(`Error ${res.status}`)
       const data = await res.json()
@@ -41,7 +41,7 @@ export default function WorldBuilder() {
     } finally {
       setLoading(false)
     }
-  }, [id, apiKey, baseUrl])
+  }, [id, baseUrl])
 
   useEffect(() => { fetchStory() }, [fetchStory])
 
@@ -55,8 +55,7 @@ export default function WorldBuilder() {
         await fetch(`${baseUrl}/api/stories/${id}`, {
           method: 'PATCH',
           headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': apiKey,
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({ world_notes: val }),
         })
@@ -91,13 +90,13 @@ export default function WorldBuilder() {
       if (editTarget?.id) {
         res = await fetch(`${baseUrl}/api/stories/${id}/characters/${editTarget.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form),
         })
       } else {
         res = await fetch(`${baseUrl}/api/stories/${id}/characters`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form),
         })
       }
@@ -120,7 +119,7 @@ export default function WorldBuilder() {
       if (char.id) {
         await fetch(`${baseUrl}/api/stories/${id}/characters/${char.id}`, {
           method: 'DELETE',
-          headers: { 'X-API-Key': apiKey },
+          headers: { },
         })
       }
       await fetchStory()

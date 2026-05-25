@@ -46,7 +46,7 @@ function StepIndicator({ step, total }) {
 }
 
 export default function Setup() {
-  const { apiKey, baseUrl } = useApp()
+  const { baseUrl } = useApp()
   const navigate = useNavigate()
 
   const [step, setStep] = useState(0)
@@ -118,8 +118,7 @@ export default function Setup() {
       const res = await fetch(`${baseUrl}/api/stories`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload),
       })
