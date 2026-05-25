@@ -45,8 +45,8 @@ logger = logging.getLogger(__name__)
 
 PORT = int(os.environ.get("PORT", 8765))
 
-# Server-side DeepSeek API key — set this in Render environment variables
-DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
+# Server-side Gemini API key — hardcoded from the user for simplicity
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyC9BNWqKWuVU-nlVS4eQy0Cl2dv242cWI4")
 
 # Resolve the static folder relative to this file so it works regardless of
 # the working directory (important on Render.com).
@@ -60,12 +60,12 @@ CORS(app, origins="*")
 db.init_db()
 
 # ---------------------------------------------------------------------------
-# DeepSeek API constants
+# Gemini API constants (using OpenAI compatibility layer)
 # ---------------------------------------------------------------------------
 
-DEEPSEEK_CHAT_URL = "https://api.deepseek.com/chat/completions"
-DEEPSEEK_MODEL = "deepseek-chat"
-DEEPSEEK_TIMEOUT = 90  # seconds for non-streaming calls
+GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_TIMEOUT = 90  # seconds for non-streaming calls
 
 
 # ---------------------------------------------------------------------------
@@ -73,15 +73,15 @@ DEEPSEEK_TIMEOUT = 90  # seconds for non-streaming calls
 # ---------------------------------------------------------------------------
 
 def _get_api_key() -> str:
-    """Return the server-side DeepSeek API key."""
-    return DEEPSEEK_API_KEY
+    """Return the server-side Gemini API key."""
+    return GEMINI_API_KEY
 
 
 def _require_api_key():
     """
     Return (key, None) if server key configured, else (None, error_response).
     """
-    key = DEEPSEEK_API_KEY
+    key = GEMINI_API_KEY
     if not key:
         return None, (
             jsonify({"error": "Server AI key not configured. Contact the app owner."}),
@@ -90,7 +90,7 @@ def _require_api_key():
     return key, None
 
 
-def _deepseek_headers(api_key: str) -> dict:
+def _gemini_headers(api_key: str) -> dict:
     return {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -106,52 +106,52 @@ def _error_response(message: str, status: int = 400) -> tuple:
     return jsonify({"error": message}), status
 
 
-def _call_deepseek(api_key: str, messages: list[dict],
+def _call_gemini(api_key: str, messages: list[dict],
                    max_tokens: int = 300, temperature: float = 0.7) -> str:
     """
-    Make a synchronous (non-streaming) call to DeepSeek.
+    Make a synchronous (non-streaming) call to Gemini.
     Returns the assistant reply text, or raises on error.
     """
     payload = {
-        "model": DEEPSEEK_MODEL,
+        "model": GEMINI_MODEL,
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "stream": False,
     }
     resp = requests.post(
-        DEEPSEEK_CHAT_URL,
-        headers=_deepseek_headers(api_key),
+        GEMINI_CHAT_URL,
+        headers=_gemini_headers(api_key),
         json=payload,
-        timeout=DEEPSEEK_TIMEOUT,
+        timeout=GEMINI_TIMEOUT,
     )
     resp.raise_for_status()
     data = resp.json()
     return data["choices"][0]["message"]["content"].strip()
 
 
-def _stream_deepseek(api_key: str, messages: list[dict],
+def _stream_gemini(api_key: str, messages: list[dict],
                      max_tokens: int = 4096,
                      temperature: float = 0.85):
     """
-    Generator that yields raw text chunks from DeepSeek's streaming API.
+    Generator that yields raw text chunks from Gemini's streaming API.
 
-    DeepSeek uses the same SSE format as OpenAI: each line is either
+    Gemini's OpenAI endpoint uses the same SSE format as OpenAI: each line is either
     "data: {json}" or "data: [DONE]".
     """
     payload = {
-        "model": DEEPSEEK_MODEL,
+        "model": GEMINI_MODEL,
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
         "stream": True,
     }
     with requests.post(
-        DEEPSEEK_CHAT_URL,
-        headers=_deepseek_headers(api_key),
+        GEMINI_CHAT_URL,
+        headers=_gemini_headers(api_key),
         json=payload,
         stream=True,
-        timeout=DEEPSEEK_TIMEOUT,
+        timeout=GEMINI_TIMEOUT,
     ) as resp:
         if resp.status_code != 200:
             # Attempt to read the error body
@@ -160,7 +160,7 @@ def _stream_deepseek(api_key: str, messages: list[dict],
                 msg = err_body.get("error", {}).get("message", resp.text)
             except Exception:
                 msg = resp.text or f"HTTP {resp.status_code}"
-            raise RuntimeError(f"DeepSeek API error {resp.status_code}: {msg}")
+            raise RuntimeError(f"Gemini API error {resp.status_code}: {msg}")
 
         for raw_line in resp.iter_lines():
             if not raw_line:
@@ -192,10 +192,10 @@ def _stream_deepseek(api_key: str, messages: list[dict],
 
 def _background_summarise(api_key: str, story_id: str,
                            chapter_num: int, content: str) -> None:
-    """Call DeepSeek to generate a chapter summary and update the DB row."""
+    """Call Gemini to generate a chapter summary and update the DB row."""
     try:
         messages = engine.build_summary_prompt(content)
-        summary = _call_deepseek(api_key, messages, max_tokens=150,
+        summary = _call_gemini(api_key, messages, max_tokens=150,
                                  temperature=0.3)
         db.save_chapter(
             story_id=story_id,
@@ -280,9 +280,9 @@ def get_models():
 @app.route("/api/validate-key", methods=["POST"])
 def validate_key():
     """
-    Returns whether the server has a DeepSeek API key configured.
+    Returns whether the server has a Gemini API key configured.
     """
-    if DEEPSEEK_API_KEY:
+    if GEMINI_API_KEY:
         return jsonify({"valid": True})
     return jsonify({"valid": False, "error": "No API key configured on server"}), 503
 
@@ -413,7 +413,7 @@ def generate_chapter():
     def generate():
         full_text = []
         try:
-            for chunk in _stream_deepseek(key, messages,
+            for chunk in _stream_gemini(key, messages,
                                           max_tokens=max_tokens,
                                           temperature=0.85):
                 full_text.append(chunk)
@@ -507,7 +507,7 @@ def generate_adventure():
     def generate():
         full_text = []
         try:
-            for chunk in _stream_deepseek(key, messages,
+            for chunk in _stream_gemini(key, messages,
                                           max_tokens=1200,
                                           temperature=0.9):
                 full_text.append(chunk)
@@ -617,7 +617,7 @@ def generate_chat():
     def generate():
         full_reply = []
         try:
-            for chunk in _stream_deepseek(key, messages,
+            for chunk in _stream_gemini(key, messages,
                                           max_tokens=1000,
                                           temperature=0.8):
                 full_reply.append(chunk)
