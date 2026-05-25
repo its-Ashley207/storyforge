@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
 
@@ -27,19 +27,18 @@ const ROLES = ['Hero', 'Villain', 'Mentor', 'Sidekick', 'Rival', 'Love interest'
 
 function StepIndicator({ step, total }) {
   return (
-    <div className="steps">
+    <div className="step-indicator">
       {Array.from({ length: total }, (_, i) => (
-        <>
+        <React.Fragment key={`frag-${i}`}>
           <div
-            key={`dot-${i}`}
             className={`step-dot ${i < step ? 'done' : i === step ? 'active' : ''}`}
           >
             {i < step ? '✓' : i + 1}
           </div>
           {i < total - 1 && (
-            <div key={`line-${i}`} className={`step-line ${i < step ? 'done' : ''}`} />
+            <div className={`step-line ${i < step ? 'done' : ''}`} />
           )}
-        </>
+        </React.Fragment>
       ))}
     </div>
   )
