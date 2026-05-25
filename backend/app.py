@@ -31,6 +31,10 @@ import db
 import story_engine as engine
 import export_engine as exporter
 
+# import g4f Client
+from g4f.client import Client
+from g4f.Provider import PollinationsAI
+
 # ---------------------------------------------------------------------------
 # Initialisation
 # ---------------------------------------------------------------------------
@@ -45,9 +49,6 @@ logger = logging.getLogger(__name__)
 
 PORT = int(os.environ.get("PORT", 8765))
 
-# Server-side Gemini API key — hardcoded from the user for simplicity
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyC9BNWqKWuVU-nlVS4eQy0Cl2dv242cWI4")
-
 # Resolve the static folder relative to this file so it works regardless of
 # the working directory (important on Render.com).
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -59,43 +60,12 @@ CORS(app, origins="*")
 # Initialise the database on startup.
 db.init_db()
 
-# ---------------------------------------------------------------------------
-# Gemini API constants (using OpenAI compatibility layer)
-# ---------------------------------------------------------------------------
-
-GEMINI_CHAT_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
-GEMINI_MODEL = "gemini-1.5-flash"
-GEMINI_TIMEOUT = 90  # seconds for non-streaming calls
-
+# Initialize g4f client
+g4f_client = Client(provider=PollinationsAI)
 
 # ---------------------------------------------------------------------------
-# Helper utilities
+# g4f Wrapper
 # ---------------------------------------------------------------------------
-
-def _get_api_key() -> str:
-    """Return the server-side Gemini API key."""
-    return GEMINI_API_KEY
-
-
-def _require_api_key():
-    """
-    Return (key, None) if server key configured, else (None, error_response).
-    """
-    key = GEMINI_API_KEY
-    if not key:
-        return None, (
-            jsonify({"error": "Server AI key not configured. Contact the app owner."}),
-            503,
-        )
-    return key, None
-
-
-def _gemini_headers(api_key: str) -> dict:
-    return {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
 
 def _sse_event(data: dict) -> str:
     """Encode a dict as an SSE data line."""
@@ -106,97 +76,57 @@ def _error_response(message: str, status: int = 400) -> tuple:
     return jsonify({"error": message}), status
 
 
-def _call_gemini(api_key: str, messages: list[dict],
-                   max_tokens: int = 300, temperature: float = 0.7) -> str:
+def _call_g4f(messages: list[dict], max_tokens: int = 300, temperature: float = 0.7) -> str:
     """
-    Make a synchronous (non-streaming) call to Gemini.
+    Make a synchronous (non-streaming) call to g4f.
     Returns the assistant reply text, or raises on error.
     """
-    payload = {
-        "model": GEMINI_MODEL,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "stream": False,
-    }
-    resp = requests.post(
-        GEMINI_CHAT_URL,
-        headers=_gemini_headers(api_key),
-        json=payload,
-        timeout=GEMINI_TIMEOUT,
-    )
-    resp.raise_for_status()
-    data = resp.json()
-    return data["choices"][0]["message"]["content"].strip()
+    try:
+        response = g4f_client.chat.completions.create(
+            model="openai",
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            stream=False
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"g4f sync error: {e}")
+        raise RuntimeError(f"AI API error: {e}")
 
 
-def _stream_gemini(api_key: str, messages: list[dict],
-                     max_tokens: int = 4096,
-                     temperature: float = 0.85):
+def _stream_g4f(messages: list[dict], max_tokens: int = 4096, temperature: float = 0.85):
     """
-    Generator that yields raw text chunks from Gemini's streaming API.
-
-    Gemini's OpenAI endpoint uses the same SSE format as OpenAI: each line is either
-    "data: {json}" or "data: [DONE]".
+    Generator that yields raw text chunks from g4f streaming API.
     """
-    payload = {
-        "model": GEMINI_MODEL,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-        "stream": True,
-    }
-    with requests.post(
-        GEMINI_CHAT_URL,
-        headers=_gemini_headers(api_key),
-        json=payload,
-        stream=True,
-        timeout=GEMINI_TIMEOUT,
-    ) as resp:
-        if resp.status_code != 200:
-            # Attempt to read the error body
-            try:
-                err_body = resp.json()
-                msg = err_body.get("error", {}).get("message", resp.text)
-            except Exception:
-                msg = resp.text or f"HTTP {resp.status_code}"
-            raise RuntimeError(f"Gemini API error {resp.status_code}: {msg}")
-
-        for raw_line in resp.iter_lines():
-            if not raw_line:
-                continue
-            if isinstance(raw_line, bytes):
-                raw_line = raw_line.decode("utf-8")
-
-            if not raw_line.startswith("data:"):
-                continue
-
-            payload_str = raw_line[len("data:"):].strip()
-            if payload_str == "[DONE]":
-                return
-
-            try:
-                chunk = json.loads(payload_str)
-            except json.JSONDecodeError:
-                continue
-
-            delta = chunk.get("choices", [{}])[0].get("delta", {})
-            content = delta.get("content")
-            if content:
-                yield content
+    try:
+        response = g4f_client.chat.completions.create(
+            model="openai",
+            messages=messages,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            stream=True
+        )
+        for chunk in response:
+            if chunk.choices and len(chunk.choices) > 0:
+                delta = chunk.choices[0].delta
+                content = getattr(delta, 'content', None)
+                if content:
+                    yield content
+    except Exception as e:
+        logger.error(f"g4f stream error: {e}")
+        yield f"ERROR: {e}"
 
 
 # ---------------------------------------------------------------------------
 # Background summary helper (runs in a daemon thread after chapter save)
 # ---------------------------------------------------------------------------
 
-def _background_summarise(api_key: str, story_id: str,
-                           chapter_num: int, content: str) -> None:
-    """Call Gemini to generate a chapter summary and update the DB row."""
+def _background_summarise(story_id: str, chapter_num: int, content: str) -> None:
+    """Call g4f to generate a chapter summary and update the DB row."""
     try:
         messages = engine.build_summary_prompt(content)
-        summary = _call_gemini(api_key, messages, max_tokens=150,
-                                 temperature=0.3)
+        summary = _call_g4f(messages, max_tokens=150, temperature=0.3)
         db.save_chapter(
             story_id=story_id,
             chapter_num=chapter_num,
@@ -258,7 +188,7 @@ def serve_react(path: str):
 @app.route("/health")
 def health():
     """Kubernetes / Render health check endpoint."""
-    return jsonify({"status": "ok", "model": DEEPSEEK_MODEL})
+    return jsonify({"status": "ok", "model": "g4f-pollinations"})
 
 
 @app.route("/api/models")
@@ -266,9 +196,9 @@ def get_models():
     """Return the list of available AI models."""
     return jsonify([
         {
-            "id": "deepseek-chat",
-            "name": "DeepSeek V3",
-            "description": "Best quality — fast, creative, long-context",
+            "id": "g4f-pollinations",
+            "name": "Pollinations AI",
+            "description": "General purpose generative model",
         }
     ])
 
@@ -280,11 +210,9 @@ def get_models():
 @app.route("/api/validate-key", methods=["POST"])
 def validate_key():
     """
-    Returns whether the server has a Gemini API key configured.
+    Returns whether the server is configured (always true for g4f).
     """
-    if GEMINI_API_KEY:
-        return jsonify({"valid": True})
-    return jsonify({"valid": False, "error": "No API key configured on server"}), 503
+    return jsonify({"valid": True})
 
 
 # ---------------------------------------------------------------------------
@@ -384,10 +312,6 @@ def generate_chapter():
     Expected body:
       { story_id, chapter_num, hint?, word_count? }
     """
-    key, err = _require_api_key()
-    if err:
-        return err
-
     data = request.get_json(silent=True) or {}
     story_id = data.get("story_id", "")
     chapter_num = int(data.get("chapter_num", 1))
@@ -413,11 +337,9 @@ def generate_chapter():
     def generate():
         full_text = []
         try:
-            for chunk in _stream_gemini(key, messages,
-                                          max_tokens=max_tokens,
-                                          temperature=0.85):
-                full_text.append(chunk)
-                yield _sse_event({"type": "chunk", "text": chunk})
+            for event in _stream_g4f(messages, max_tokens=max_tokens, temperature=0.85):
+                full_text.append(event)
+                yield _sse_event({"type": "chunk", "text": event})
 
             # ---- Post-stream: save to DB ----
             complete_text = "".join(full_text)
@@ -438,7 +360,7 @@ def generate_chapter():
             # Fire-and-forget summarisation in background
             t = Thread(
                 target=_background_summarise,
-                args=(key, story_id, chapter_num, complete_text),
+                args=(story_id, chapter_num, complete_text),
                 daemon=True,
             )
             t.start()
@@ -478,10 +400,6 @@ def generate_adventure():
     Expected body:
       { story_id, parent_node_id?, num_choices? }
     """
-    key, err = _require_api_key()
-    if err:
-        return err
-
     data = request.get_json(silent=True) or {}
     story_id = data.get("story_id", "")
     parent_node_id = data.get("parent_node_id") or None
@@ -507,11 +425,9 @@ def generate_adventure():
     def generate():
         full_text = []
         try:
-            for chunk in _stream_gemini(key, messages,
-                                          max_tokens=1200,
-                                          temperature=0.9):
-                full_text.append(chunk)
-                yield _sse_event({"type": "chunk", "text": chunk})
+            for event in _stream_g4f(messages, max_tokens=1200, temperature=0.9):
+                full_text.append(event)
+                yield _sse_event({"type": "chunk", "text": event})
 
             complete_text = "".join(full_text).strip()
 
@@ -584,10 +500,6 @@ def generate_chat():
     Expected body:
       { story_id, message }
     """
-    key, err = _require_api_key()
-    if err:
-        return err
-
     data = request.get_json(silent=True) or {}
     story_id = data.get("story_id", "")
     user_message = (data.get("message") or "").strip()
@@ -617,11 +529,9 @@ def generate_chat():
     def generate():
         full_reply = []
         try:
-            for chunk in _stream_gemini(key, messages,
-                                          max_tokens=1000,
-                                          temperature=0.8):
-                full_reply.append(chunk)
-                yield _sse_event({"type": "chunk", "text": chunk})
+            for event in _stream_g4f(messages, max_tokens=1000, temperature=0.8):
+                full_reply.append(event)
+                yield _sse_event({"type": "chunk", "text": event})
 
             reply_text = "".join(full_reply).strip()
 
