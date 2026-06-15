@@ -64,7 +64,7 @@ export default function Write() {
         },
         body: JSON.stringify({
           story_id: id,
-          chapter_number: currentChapter,
+          chapter_num: currentChapter,
           hint: hint.trim() || null,
           word_count: wordCount,
         }),
@@ -92,6 +92,10 @@ export default function Write() {
             if (raw === '[DONE]') continue
             try {
               const obj = JSON.parse(raw)
+              if (obj.type === 'done') {
+                // Chapter was auto-saved by backend — nothing extra needed
+                continue
+              }
               const token = obj.token ?? obj.text ?? obj.content ?? ''
               if (token) setStreamText(t => t + token)
             } catch {
@@ -111,24 +115,24 @@ export default function Write() {
   }
 
   async function acceptChapter() {
-    if (!streamText.trim()) return
-    try {
-      await fetch(`${baseUrl}/api/stories/${id}/chapters`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ content: streamText, chapter_number: currentChapter }),
-      })
-      setAccepted(true)
-      setHint('')
-      await fetchStory()
-      if (story && currentChapter >= story.total_chapters) {
-        setShowCelebration(true)
-      }
-    } catch (e) {
-      setGenError(e.message)
+    // The backend already saved the chapter during streaming (in the 'done' event).
+    // So we just need to refresh the story data and reset the UI for the next chapter.
+    setAccepted(true)
+    setHint('')
+    await fetchStory()
+
+    // Check if the story is now complete
+    const updatedChapterCount = (story?.chapters?.length ?? 0) + 1
+    if (story && updatedChapterCount >= story.total_chapters) {
+      setShowCelebration(true)
     }
+
+    // Brief delay so user sees the "accepted" message, then reset for next chapter
+    setTimeout(() => {
+      setStreamText('')
+      setAccepted(false)
+      setGenError('')
+    }, 1500)
   }
 
   function redo() {
@@ -136,6 +140,7 @@ export default function Write() {
     setAccepted(false)
     setGenError('')
   }
+
 
   const words = streamText.trim() ? streamText.trim().split(/\s+/).length : 0
 
