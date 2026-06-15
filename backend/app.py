@@ -31,9 +31,9 @@ import db
 import story_engine as engine
 import export_engine as exporter
 
-# import g4f Client
+# import g4f Client with multiple providers for fallback
 from g4f.client import Client
-from g4f.Provider import PollinationsAI
+from g4f.Provider import Blackbox, DDG, PollinationsAI
 
 # ---------------------------------------------------------------------------
 # Initialisation
@@ -60,8 +60,10 @@ CORS(app, origins="*")
 # Initialise the database on startup.
 db.init_db()
 
-# Initialize g4f client
-g4f_client = Client(provider=PollinationsAI)
+# Initialize g4f clients with a priority-ordered fallback chain.
+# If the first provider is rate-limited (429), the next one is tried.
+_PROVIDER_CHAIN = [Blackbox, DDG, PollinationsAI]
+_g4f_clients = [(p, Client(provider=p)) for p in _PROVIDER_CHAIN]
 
 # ---------------------------------------------------------------------------
 # g4f Wrapper
@@ -79,43 +81,63 @@ def _error_response(message: str, status: int = 400) -> tuple:
 def _call_g4f(messages: list[dict], max_tokens: int = 300, temperature: float = 0.7) -> str:
     """
     Make a synchronous (non-streaming) call to g4f.
+    Tries each provider in the fallback chain until one succeeds.
     Returns the assistant reply text, or raises on error.
     """
-    try:
-        response = g4f_client.chat.completions.create(
-            model="openai",
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stream=False
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        logger.error(f"g4f sync error: {e}")
-        raise RuntimeError(f"AI API error: {e}")
+    last_error = None
+    for provider, client in _g4f_clients:
+        try:
+            logger.info("Trying provider %s (sync)...", provider.__name__)
+            response = client.chat.completions.create(
+                model="",
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=False
+            )
+            text = response.choices[0].message.content.strip()
+            if text:
+                logger.info("Provider %s succeeded (sync).", provider.__name__)
+                return text
+        except Exception as e:
+            logger.warning("Provider %s failed (sync): %s", provider.__name__, e)
+            last_error = e
+            time.sleep(1)  # brief pause before trying next provider
+    raise RuntimeError(f"All AI providers failed. Last error: {last_error}")
 
 
 def _stream_g4f(messages: list[dict], max_tokens: int = 4096, temperature: float = 0.85):
     """
     Generator that yields raw text chunks from g4f streaming API.
+    Tries each provider in the fallback chain until one succeeds.
     """
-    try:
-        response = g4f_client.chat.completions.create(
-            model="openai",
-            messages=messages,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            stream=True
-        )
-        for chunk in response:
-            if chunk.choices and len(chunk.choices) > 0:
-                delta = chunk.choices[0].delta
-                content = getattr(delta, 'content', None)
-                if content:
-                    yield content
-    except Exception as e:
-        logger.error(f"g4f stream error: {e}")
-        yield f"ERROR: {e}"
+    for provider, client in _g4f_clients:
+        try:
+            logger.info("Trying provider %s (stream)...", provider.__name__)
+            response = client.chat.completions.create(
+                model="",
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True
+            )
+            chunks_yielded = 0
+            for chunk in response:
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    content = getattr(delta, 'content', None)
+                    if content:
+                        yield content
+                        chunks_yielded += 1
+            if chunks_yielded > 0:
+                logger.info("Provider %s succeeded (stream, %d chunks).", provider.__name__, chunks_yielded)
+                return  # success — stop trying other providers
+            else:
+                logger.warning("Provider %s returned 0 chunks, trying next...", provider.__name__)
+        except Exception as e:
+            logger.warning("Provider %s failed (stream): %s", provider.__name__, e)
+            time.sleep(1)  # brief pause before trying next provider
+    yield "ERROR: All AI providers are currently unavailable. Please try again in a moment."
 
 
 # ---------------------------------------------------------------------------
@@ -188,7 +210,7 @@ def serve_react(path: str):
 @app.route("/health")
 def health():
     """Kubernetes / Render health check endpoint."""
-    return jsonify({"status": "ok", "model": "g4f-pollinations"})
+    return jsonify({"status": "ok", "providers": [p.__name__ for p in _PROVIDER_CHAIN]})
 
 
 @app.route("/api/models")
@@ -196,9 +218,9 @@ def get_models():
     """Return the list of available AI models."""
     return jsonify([
         {
-            "id": "g4f-pollinations",
-            "name": "Pollinations AI",
-            "description": "General purpose generative model",
+            "id": "g4f-multi",
+            "name": "Free AI (Auto-Select)",
+            "description": "Automatically selects the best available free AI provider",
         }
     ])
 
